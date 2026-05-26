@@ -263,9 +263,11 @@
         "originalAmount": "decimal(12,2)",
         "remainingBalance": "decimal(12,2)",
         "currency": "string(3)",
-        "status": "enum(OUTSTANDING, PARTIALLY_PAID, SETTLED)",
+        "status": "enum(PENDING, ACTIVE, PARTIALLY_PAID, SETTLED, CANCELLED)",
         "priority": "integer",
-        "createdAt": "timestamp"
+        "structuredReference": "string(50)",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
       },
       "invariant": [
         "Debt balance = Original amount - Sum of allocations",
@@ -274,13 +276,16 @@
         "Priority determines allocation order (RG-005)"
       ],
       "hasState": [
-        "tax:DebtOutstanding",
+        "tax:DebtPending",
+        "tax:DebtActive",
         "tax:DebtPartiallyPaid",
-        "tax:DebtSettled"
+        "tax:DebtSettled",
+        "tax:DebtCancelled"
       ],
-      "initialState": "tax:DebtOutstanding",
+      "initialState": "tax:DebtPending",
       "terminalStates": [
-        "tax:DebtSettled"
+        "tax:DebtSettled",
+        "tax:DebtCancelled"
       ],
       "relatesTo": [
         "tax:Allocation",
@@ -289,8 +294,10 @@
       ],
       "emitsEvent": [
         "tax:DebtCreated",
+        "tax:DebtActivated",
         "tax:DebtPartiallyPaid",
-        "tax:DebtSettled"
+        "tax:DebtSettled",
+        "tax:DebtCancelled"
       ],
       "businessRule": [
         "RG-005"
@@ -822,10 +829,16 @@
       "description": "Allocation has been reversed (future feature)"
     },
     {
-      "id": "tax:DebtOutstanding",
+      "id": "tax:DebtPending",
       "type": "State",
-      "name": "DebtOutstanding",
-      "description": "Debt is outstanding with full balance remaining"
+      "name": "DebtPending",
+      "description": "Debt has been created but not yet active"
+    },
+    {
+      "id": "tax:DebtActive",
+      "type": "State",
+      "name": "DebtActive",
+      "description": "Debt is active with full balance remaining"
     },
     {
       "id": "tax:DebtPartiallyPaid",
@@ -838,6 +851,12 @@
       "type": "State",
       "name": "DebtSettled",
       "description": "Debt has been fully settled, balance is zero"
+    },
+    {
+      "id": "tax:DebtCancelled",
+      "type": "State",
+      "name": "DebtCancelled",
+      "description": "Debt has been cancelled and is no longer payable"
     }
   ]
 }
