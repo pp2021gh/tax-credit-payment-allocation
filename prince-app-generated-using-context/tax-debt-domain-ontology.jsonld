@@ -1,0 +1,586 @@
+{
+  "@context": {
+    "tdo": "http://example.org/tax-debt-ontology#",
+    "schema": "http://schema.org/",
+    "id": "@id",
+    "type": "@type",
+    "name": "schema:name",
+    "description": "schema:description",
+    "attributes": "tdo:attributes",
+    "identityKey": "tdo:identityKey",
+    "humanRef": "tdo:humanRef",
+    "invariant": "tdo:invariant",
+    "hasState": {
+      "@id": "tdo:hasState",
+      "@type": "@id"
+    },
+    "initialState": {
+      "@id": "tdo:initialState",
+      "@type": "@id"
+    },
+    "terminalStates": {
+      "@id": "tdo:terminalStates",
+      "@type": "@id"
+    },
+    "relatesTo": {
+      "@id": "tdo:relatesTo",
+      "@type": "@id"
+    },
+    "emitsEvent": {
+      "@id": "tdo:emitsEvent",
+      "@type": "@id"
+    },
+    "from": {
+      "@id": "tdo:from",
+      "@type": "@id"
+    },
+    "to": {
+      "@id": "tdo:to",
+      "@type": "@id"
+    },
+    "precondition": "tdo:precondition",
+    "postcondition": "tdo:postcondition",
+    "Entity": "tdo:Entity",
+    "Operation": "tdo:Operation",
+    "State": "tdo:State"
+  },
+  "@graph": [
+    {
+      "id": "tdo:Citizen",
+      "type": "Entity",
+      "name": "Citizen",
+      "description": "A taxpayer who can make prepayments, have tax credits, and owe debts",
+      "identityKey": "citizenId: UUID",
+      "humanRef": "citizenCode",
+      "attributes": {
+        "citizenId": "string",
+        "citizenCode": "string",
+        "firstName": "string",
+        "lastName": "string",
+        "nationalId": "string",
+        "email": "string",
+        "phone": "string|null",
+        "address": "string|null"
+      },
+      "invariant": [
+        "citizenCode must be unique",
+        "nationalId must be unique",
+        "email must be valid format"
+      ],
+      "relatesTo": [
+        "tdo:Prepayment",
+        "tdo:TaxCredit",
+        "tdo:Payment",
+        "tdo:Debt"
+      ]
+    },
+    {
+      "id": "tdo:Prepayment",
+      "type": "Entity",
+      "name": "Prepayment",
+      "description": "A prepayment made by a citizen (VAT or advance payment) that feeds into tax credit",
+      "identityKey": "prepaymentId: UUID",
+      "humanRef": "prepaymentCode",
+      "attributes": {
+        "prepaymentId": "string",
+        "prepaymentCode": "string",
+        "citizenId": "string",
+        "prepaymentType": "VAT|ADVANCE_PAYMENT",
+        "amount": "decimal",
+        "currency": "string",
+        "description": "string|null",
+        "paymentMethod": "string",
+        "paymentGatewayReference": "string|null",
+        "idempotencyKey": "string",
+        "status": "PENDING_PAYMENT|COMPLETED|FAILED|CANCELLED",
+        "createdAt": "timestamp",
+        "confirmedAt": "timestamp|null"
+      },
+      "invariant": [
+        "prepaymentCode must be unique",
+        "amount must be positive and >= 1.00",
+        "prepaymentType must be VAT or ADVANCE_PAYMENT",
+        "idempotencyKey must be unique",
+        "confirmedAt must be null if status is PENDING_PAYMENT"
+      ],
+      "hasState": [
+        "tdo:PrepaymentPending",
+        "tdo:PrepaymentCompleted",
+        "tdo:PrepaymentFailed",
+        "tdo:PrepaymentCancelled"
+      ],
+      "initialState": "tdo:PrepaymentPending",
+      "terminalStates": [
+        "tdo:PrepaymentCompleted",
+        "tdo:PrepaymentFailed",
+        "tdo:PrepaymentCancelled"
+      ],
+      "relatesTo": [
+        "tdo:Citizen",
+        "tdo:TaxCredit"
+      ],
+      "emitsEvent": [
+        "tdo:PrepaymentConfirmed",
+        "tdo:TaxCreditCreated"
+      ]
+    },
+    {
+      "id": "tdo:TaxCredit",
+      "type": "Entity",
+      "name": "TaxCredit",
+      "description": "Aggregate managing citizen's tax credit balance from prepayments",
+      "identityKey": "taxCreditId: UUID",
+      "humanRef": "citizenId",
+      "attributes": {
+        "taxCreditId": "string",
+        "citizenId": "string",
+        "totalCredit": "decimal",
+        "allocatedCredit": "decimal",
+        "availableCredit": "decimal",
+        "currency": "string",
+        "version": "integer",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      },
+      "invariant": [
+        "One TaxCredit per citizen (citizenId must be unique)",
+        "totalCredit must be >= 0",
+        "allocatedCredit must be >= 0",
+        "allocatedCredit must be <= totalCredit",
+        "availableCredit = totalCredit - allocatedCredit",
+        "version incremented on every update (optimistic locking)"
+      ],
+      "relatesTo": [
+        "tdo:Citizen",
+        "tdo:Prepayment",
+        "tdo:Allocation",
+        "tdo:TaxCreditEvent"
+      ],
+      "emitsEvent": [
+        "tdo:CreditAdded",
+        "tdo:CreditAllocated",
+        "tdo:CreditReleased"
+      ]
+    },
+    {
+      "id": "tdo:TaxCreditEvent",
+      "type": "Entity",
+      "name": "TaxCreditEvent",
+      "description": "Event sourcing log for tax credit changes (immutable audit trail)",
+      "identityKey": "eventId: UUID",
+      "humanRef": "eventId",
+      "attributes": {
+        "eventId": "string",
+        "taxCreditId": "string",
+        "eventType": "CREDIT_ADDED|CREDIT_ALLOCATED|CREDIT_RELEASED",
+        "amount": "decimal",
+        "sourceType": "PREPAYMENT|REFUND|ADJUSTMENT",
+        "sourceId": "string",
+        "metadata": "json",
+        "createdAt": "timestamp"
+      },
+      "invariant": [
+        "Events are append-only (no updates or deletes)",
+        "Events must be ordered by createdAt",
+        "amount must be positive"
+      ],
+      "relatesTo": [
+        "tdo:TaxCredit"
+      ]
+    },
+    {
+      "id": "tdo:Payment",
+      "type": "Entity",
+      "name": "Payment",
+      "description": "A direct payment via bank transfer using structured reference to identify debt",
+      "identityKey": "paymentId: UUID",
+      "humanRef": "paymentCode",
+      "attributes": {
+        "paymentId": "string",
+        "paymentCode": "string",
+        "citizenId": "string",
+        "amount": "decimal",
+        "currency": "string",
+        "structuredReference": "string",
+        "targetDebtId": "string|null",
+        "paymentMethod": "BANK_TRANSFER",
+        "bankReference": "string|null",
+        "status": "RECEIVED|ALLOCATED|PARTIALLY_ALLOCATED|UNALLOCATED",
+        "receivedAt": "timestamp",
+        "allocatedAt": "timestamp|null",
+        "createdAt": "timestamp"
+      },
+      "invariant": [
+        "paymentCode must be unique",
+        "structuredReference must be unique and match format (12 alphanumeric)",
+        "amount must be positive",
+        "allocatedAt must be null if status is not ALLOCATED",
+        "targetDebtId resolved from structuredReference"
+      ],
+      "hasState": [
+        "tdo:PaymentReceived",
+        "tdo:PaymentPartiallyAllocated",
+        "tdo:PaymentAllocated",
+        "tdo:PaymentUnallocated"
+      ],
+      "initialState": "tdo:PaymentReceived",
+      "terminalStates": [
+        "tdo:PaymentAllocated",
+        "tdo:PaymentUnallocated"
+      ],
+      "relatesTo": [
+        "tdo:Citizen",
+        "tdo:Debt",
+        "tdo:Allocation"
+      ],
+      "emitsEvent": [
+        "tdo:PaymentReceived",
+        "tdo:PaymentAllocated"
+      ]
+    },
+    {
+      "id": "tdo:Debt",
+      "type": "Entity",
+      "name": "Debt",
+      "description": "A tax debt owed by a citizen that can be settled through allocations",
+      "identityKey": "debtId: UUID",
+      "humanRef": "debtCode",
+      "attributes": {
+        "debtId": "string",
+        "debtCode": "string",
+        "citizenId": "string",
+        "debtType": "TAX|PENALTY|INTEREST|OTHER",
+        "originalAmount": "decimal",
+        "outstandingAmount": "decimal",
+        "currency": "string",
+        "dueDate": "date",
+        "status": "OPEN|PARTIALLY_PAID|PAID|CANCELLED",
+        "priority": "integer",
+        "structuredReference": "string",
+        "version": "integer",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp",
+        "settledAt": "timestamp|null"
+      },
+      "invariant": [
+        "debtCode must be unique (format: YYYY-NNNNNN)",
+        "structuredReference must be unique",
+        "originalAmount must be positive",
+        "outstandingAmount must be >= 0 and <= originalAmount",
+        "status = PAID when outstandingAmount = 0",
+        "settledAt must be null if status is not PAID",
+        "priority >= 1 (1 is highest priority)",
+        "version incremented on every update (optimistic locking)"
+      ],
+      "hasState": [
+        "tdo:DebtOpen",
+        "tdo:DebtPartiallyPaid",
+        "tdo:DebtPaid",
+        "tdo:DebtCancelled"
+      ],
+      "initialState": "tdo:DebtOpen",
+      "terminalStates": [
+        "tdo:DebtPaid",
+        "tdo:DebtCancelled"
+      ],
+      "relatesTo": [
+        "tdo:Citizen",
+        "tdo:Payment",
+        "tdo:Allocation"
+      ],
+      "emitsEvent": [
+        "tdo:DebtCreated",
+        "tdo:DebtReduced",
+        "tdo:DebtSettled"
+      ]
+    },
+    {
+      "id": "tdo:Allocation",
+      "type": "Entity",
+      "name": "Allocation",
+      "description": "Materializes the assignment of credit or payment to a debt (full or partial)",
+      "identityKey": "allocationId: UUID",
+      "humanRef": "allocationCode",
+      "attributes": {
+        "allocationId": "string",
+        "allocationCode": "string",
+        "allocationType": "CREDIT_TO_DEBT|PAYMENT_TO_DEBT",
+        "sourceId": "string",
+        "targetDebtId": "string",
+        "amount": "decimal",
+        "currency": "string",
+        "allocationRule": "string|null",
+        "status": "PENDING|APPLIED|REVERSED",
+        "appliedAt": "timestamp|null",
+        "reversedAt": "timestamp|null",
+        "createdAt": "timestamp"
+      },
+      "invariant": [
+        "allocationCode must be unique",
+        "amount must be positive",
+        "allocationType must be CREDIT_TO_DEBT or PAYMENT_TO_DEBT",
+        "appliedAt must be null if status is PENDING",
+        "reversedAt must be null if status is not REVERSED",
+        "Cannot allocate more than available credit/payment amount",
+        "Cannot allocate more than debt outstanding amount",
+        "Allocations are immutable once APPLIED"
+      ],
+      "hasState": [
+        "tdo:AllocationPending",
+        "tdo:AllocationApplied",
+        "tdo:AllocationReversed"
+      ],
+      "initialState": "tdo:AllocationPending",
+      "terminalStates": [
+        "tdo:AllocationApplied",
+        "tdo:AllocationReversed"
+      ],
+      "relatesTo": [
+        "tdo:TaxCredit",
+        "tdo:Payment",
+        "tdo:Debt",
+        "tdo:AccountingEntry"
+      ],
+      "emitsEvent": [
+        "tdo:AllocationCreated",
+        "tdo:AllocationApplied",
+        "tdo:AllocationReversed"
+      ]
+    },
+    {
+      "id": "tdo:AccountingEntry",
+      "type": "Entity",
+      "name": "AccountingEntry",
+      "description": "Immutable double-entry accounting ledger for all financial operations",
+      "identityKey": "entryId: UUID",
+      "humanRef": "entryId",
+      "attributes": {
+        "entryId": "string",
+        "entryType": "DEBIT|CREDIT",
+        "account": "string",
+        "amount": "decimal",
+        "currency": "string",
+        "operationType": "PREPAYMENT|PAYMENT|ALLOCATION|REVERSAL",
+        "operationId": "string",
+        "description": "string",
+        "metadata": "json",
+        "createdAt": "timestamp"
+      },
+      "invariant": [
+        "Entries are append-only (no updates or deletes)",
+        "Every operation must generate balanced entries (total debits = total credits)",
+        "amount must be positive",
+        "entryType must be DEBIT or CREDIT"
+      ],
+      "relatesTo": [
+        "tdo:Prepayment",
+        "tdo:Payment",
+        "tdo:Allocation"
+      ]
+    },
+    {
+      "id": "tdo:FeedsInto",
+      "type": "Operation",
+      "name": "FeedsInto",
+      "description": "Links a completed prepayment to the tax credit it creates or increases",
+      "from": "tdo:Prepayment",
+      "to": "tdo:TaxCredit",
+      "precondition": [
+        "Prepayment must be in COMPLETED state",
+        "TaxCredit must exist for the citizen",
+        "Prepayment amount must be positive"
+      ],
+      "postcondition": [
+        "TaxCredit totalCredit increased by prepayment amount",
+        "TaxCredit availableCredit increased by prepayment amount",
+        "TaxCreditEvent created with CREDIT_ADDED type",
+        "AccountingEntry created (DEBIT: Bank, CREDIT: TaxCredit)"
+      ]
+    },
+    {
+      "id": "tdo:AllocatesTo",
+      "type": "Operation",
+      "name": "AllocatesTo",
+      "description": "Allocates tax credit or payment to a debt (automatic or manual)",
+      "from": "tdo:TaxCredit|tdo:Payment",
+      "to": "tdo:Debt",
+      "precondition": [
+        "Source (TaxCredit or Payment) must have available balance",
+        "Debt must be in OPEN or PARTIALLY_PAID state",
+        "Allocation amount must not exceed available balance",
+        "Allocation amount must not exceed debt outstanding amount",
+        "No concurrent allocations (optimistic locking)"
+      ],
+      "postcondition": [
+        "Allocation record created with PENDING status",
+        "Allocation applied to debt (status becomes APPLIED)",
+        "Debt outstandingAmount reduced by allocation amount",
+        "TaxCredit allocatedCredit increased (if credit allocation)",
+        "Payment status updated (if payment allocation)",
+        "AccountingEntry created for allocation",
+        "Debt status updated (PAID if outstandingAmount = 0)"
+      ]
+    },
+    {
+      "id": "tdo:Identifies",
+      "type": "Operation",
+      "name": "Identifies",
+      "description": "Links a payment to the debt it targets via structured reference",
+      "from": "tdo:Payment",
+      "to": "tdo:Debt",
+      "precondition": [
+        "Payment must have valid structuredReference",
+        "Debt with matching structuredReference must exist"
+      ],
+      "postcondition": [
+        "Payment targetDebtId set to identified debt",
+        "Payment ready for allocation to identified debt"
+      ]
+    },
+    {
+      "id": "tdo:Reverses",
+      "type": "Operation",
+      "name": "Reverses",
+      "description": "Reverses an allocation (only if debt not yet fully paid)",
+      "from": "tdo:Allocation",
+      "to": "tdo:Allocation",
+      "precondition": [
+        "Original allocation must be in APPLIED state",
+        "Target debt must not be in PAID state",
+        "Reversal must be justified"
+      ],
+      "postcondition": [
+        "New allocation created with REVERSED status",
+        "Debt outstandingAmount increased by reversed amount",
+        "TaxCredit allocatedCredit decreased (if credit allocation)",
+        "Payment status updated (if payment allocation)",
+        "Compensating AccountingEntry created"
+      ]
+    },
+    {
+      "id": "tdo:Triggers",
+      "type": "Operation",
+      "name": "Triggers",
+      "description": "Automatic allocation rules triggered when credit becomes available",
+      "from": "tdo:TaxCredit",
+      "to": "tdo:Debt",
+      "precondition": [
+        "TaxCredit has available balance > 0",
+        "Citizen has outstanding debts",
+        "Allocation rules are configured"
+      ],
+      "postcondition": [
+        "Debts allocated in priority order (priority, due date, amount)",
+        "Multiple allocations created until credit exhausted or no more debts",
+        "All allocations processed atomically"
+      ]
+    },
+    {
+      "id": "tdo:Records",
+      "type": "Operation",
+      "name": "Records",
+      "description": "Every financial operation generates accounting entries",
+      "from": "tdo:Prepayment|tdo:Payment|tdo:Allocation",
+      "to": "tdo:AccountingEntry",
+      "precondition": [
+        "Operation must be in terminal state or being finalized",
+        "Operation amount must be positive"
+      ],
+      "postcondition": [
+        "Balanced accounting entries created (debits = credits)",
+        "Entries are immutable and append-only",
+        "Complete audit trail maintained"
+      ]
+    },
+    {
+      "id": "tdo:PrepaymentPending",
+      "type": "State",
+      "name": "PrepaymentPending",
+      "description": "Prepayment created, awaiting payment gateway confirmation"
+    },
+    {
+      "id": "tdo:PrepaymentCompleted",
+      "type": "State",
+      "name": "PrepaymentCompleted",
+      "description": "Payment confirmed, tax credit created"
+    },
+    {
+      "id": "tdo:PrepaymentFailed",
+      "type": "State",
+      "name": "PrepaymentFailed",
+      "description": "Payment failed at gateway"
+    },
+    {
+      "id": "tdo:PrepaymentCancelled",
+      "type": "State",
+      "name": "PrepaymentCancelled",
+      "description": "Prepayment cancelled by user"
+    },
+    {
+      "id": "tdo:PaymentReceived",
+      "type": "State",
+      "name": "PaymentReceived",
+      "description": "Bank transfer received, not yet allocated"
+    },
+    {
+      "id": "tdo:PaymentPartiallyAllocated",
+      "type": "State",
+      "name": "PaymentPartiallyAllocated",
+      "description": "Payment partially allocated to debts"
+    },
+    {
+      "id": "tdo:PaymentAllocated",
+      "type": "State",
+      "name": "PaymentAllocated",
+      "description": "Payment fully allocated to debts"
+    },
+    {
+      "id": "tdo:PaymentUnallocated",
+      "type": "State",
+      "name": "PaymentUnallocated",
+      "description": "Payment received but cannot be allocated (invalid reference)"
+    },
+    {
+      "id": "tdo:DebtOpen",
+      "type": "State",
+      "name": "DebtOpen",
+      "description": "Debt created, no payments received"
+    },
+    {
+      "id": "tdo:DebtPartiallyPaid",
+      "type": "State",
+      "name": "DebtPartiallyPaid",
+      "description": "Debt partially settled through allocations"
+    },
+    {
+      "id": "tdo:DebtPaid",
+      "type": "State",
+      "name": "DebtPaid",
+      "description": "Debt fully settled, outstanding amount is zero"
+    },
+    {
+      "id": "tdo:DebtCancelled",
+      "type": "State",
+      "name": "DebtCancelled",
+      "description": "Debt cancelled by tax authority"
+    },
+    {
+      "id": "tdo:AllocationPending",
+      "type": "State",
+      "name": "AllocationPending",
+      "description": "Allocation created, not yet applied to debt"
+    },
+    {
+      "id": "tdo:AllocationApplied",
+      "type": "State",
+      "name": "AllocationApplied",
+      "description": "Allocation applied, debt balance reduced"
+    },
+    {
+      "id": "tdo:AllocationReversed",
+      "type": "State",
+      "name": "AllocationReversed",
+      "description": "Allocation reversed, debt balance restored"
+    }
+  ]
+}

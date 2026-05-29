@@ -1,0 +1,17 @@
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\application\service\TaxDebtService.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\entity\TaxCreditEntity.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\domain\model\enums\PrepaymentType.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\repository\CitizenRepository.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\TaxDebtRecoveryApplication.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\domain\model\enums\DebtType.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\repository\PrepaymentRepository.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\entity\CitizenEntity.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\web\config\OpenApiConfig.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\domain\model\valueobject\Money.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\entity\DebtEntity.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\repository\TaxCreditRepository.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\domain\model\enums\DebtStatus.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\domain\model\enums\PrepaymentStatus.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\repository\DebtRepository.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\web\controller\TaxDebtController.java
+C:\tools\repos\bob-a-thon-2026\fodfin-agpr\src\main\java\com\taxauthority\debtrecovery\infrastructure\persistence\entity\PrepaymentEntity.java
