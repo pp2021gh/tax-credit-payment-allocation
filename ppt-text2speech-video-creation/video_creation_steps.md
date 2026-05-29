@@ -7,10 +7,42 @@ This document lists the exact steps, scripts, inputs, and commands used to produ
 - PowerPoint source: [`FodFin AGPR.pptx`](FodFin AGPR.pptx)
 - Existing demo video: [`Bob-a-Thon Team Belgium FOD Finance AGPR Application Demo.mp4`](Bob-a-Thon Team Belgium FOD Finance AGPR Application Demo.mp4)
 
-## Credentials used for text-to-speech
+## Configuration
 
-- IBM Watson Text to Speech URL: `https://api.eu-de.text-to-speech.watson.cloud.ibm.com/instances/cf1f0c60-05dd-4806-a1cf-f6b44e285e74`
-- Voice: `en-GB_GeorgeNatural`
+### Environment Variables
+
+The project uses a [`.env`](.env) file to store API credentials and configuration. This file contains:
+
+- **IBM Watson Speech-to-Text credentials:**
+  - `WATSON_STT_URL`: Watson Speech-to-Text service endpoint
+  - `WATSON_STT_API_KEY`: API key for Speech-to-Text authentication
+
+- **IBM Watson Text-to-Speech credentials:**
+  - `WATSON_TTS_URL`: Watson Text-to-Speech service endpoint
+  - `WATSON_TTS_API_KEY`: API key for Text-to-Speech authentication
+
+- **FFmpeg configuration:**
+  - `FFMPEG_PATH`: Path to FFmpeg executable (default: `ffmpeg.exe`)
+  - `FFPROBE_PATH`: Path to FFprobe executable (default: `ffprobe.exe`)
+
+**Example `.env` file:**
+
+```env
+WATSON_STT_URL=https://api.eu-de.speech-to-text.watson.cloud.ibm.com/instances/YOUR_STT_INSTANCE_ID
+WATSON_STT_API_KEY=your_stt_api_key_here
+WATSON_TTS_URL=https://api.eu-de.text-to-speech.watson.cloud.ibm.com/instances/YOUR_TTS_INSTANCE_ID
+WATSON_TTS_API_KEY=your_tts_api_key_here
+FFMPEG_PATH=ffmpeg.exe
+FFPROBE_PATH=ffprobe.exe
+```
+
+**Important:** The `.env` file should never be committed to version control as it contains sensitive credentials. Ensure it's listed in [`.gitignore`](../.gitignore).
+
+### Voice Configuration
+
+The Text-to-Speech voice used is: `en-GB_GeorgeNatural`
+
+This can be modified in [`generate_tts.py`](generate_tts.py) if a different voice is desired.
 
 ## Prerequisites
 
