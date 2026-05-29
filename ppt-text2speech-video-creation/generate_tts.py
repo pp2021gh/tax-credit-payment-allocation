@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
-API_KEY = "<your Watson X Text to Speech API key>"
-SERVICE_URL = "https://api.eu-de.text-to-speech.watson.cloud.ibm.com/instances/cf1f0c60-05dd-4806-a1cf-f6b44e285e74"
+API_KEY = os.getenv("WATSON_TTS_API_KEY")
+SERVICE_URL = os.getenv("WATSON_TTS_URL")
 VOICE = "en-GB_GeorgeNatural"
+
+if not API_KEY or not SERVICE_URL:
+    raise ValueError("WATSON_TTS_API_KEY and WATSON_TTS_URL must be set in .env file")
 
 notes_path = Path("slide_notes.json")
 audio_dir = Path("slide_audio")
